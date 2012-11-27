@@ -1,0 +1,1 @@
+ ../patch_valid_list HDarlokVsDarlok.GAM EmptyHumanVsDarlok.GAM dvd_recpr.txt PatchedEmptyHumanVsDarlok.GAM
