@@ -4,6 +4,11 @@
 #include <set>
 #include <string>
 #include <vector>
+
+
+const char * possibleNames[]={"Rhodos","Delphi","Horta","Cassandra","Sethlans","Ismareos","Diomedes","Thrace","Pontus","Thesseus","Nortia","Stymphalus","Thebes","Hecaton","Arachne","Pactolus","Eretria","Hera","Leon","Euphrosyne","Augeas","Zephir","Eurus","Mummu","Ajax","Scyros","Icarus","Hehet","Dionysus","Ammon","Lerna","Neith","Postverta","Nekhbet","Thelxepia","Coeus","Astarte","Alcmene","Sphinx","Nepthys","Kingu","Iphicles","Sparta","Iapetus","Clytaemnestra","Kalkal","Alcestis","Iris","Tartarus","Bel","LotosAni","Calypso","Aglaia","Vladimir","Geb","Argos","Samos","Aegeus","Aplu","Apollo","Ninhursaga","Sobek","Antu","Imhotep","Khepry","Khnum","Vertumus","Paros","Perseus","Aeolus","Nabu","Clio","Marduk","Apsu","Inanna","Laius","Turan","Mammetum","Epimetheus","ZaltuAmaunet","Aton","Aia","Telamon","Ea","Bes","Polyhymnia","Charun","Shara","Union","Metope","Nin ildu","Hesione","Delos","Peisinoe","Thracia","Hades","Callen","Tenedos","Tyndareus","Peleus","Hecuba","Nemesis","Belet ili","Nammu","Nintu","Hestia","Laocoon","Atropos","Nemea","Clotho","Chalcis","Gibil","Aglaophonos","Sekhmet","Keket","Crete","Mut","Thalia","Tethys","Enki","Patroclus","Hecate","Enurta","Osiris","Tinia","Erebus","Amun","Enlil","Nin agal ","Ptah","Papsukkal ","Karl","Ishtar","Cetus","Sin","Minotaur","Seth","Cepheus","Maat","Molpe","Pandora","Isis","Olympia","Athena","Jocasta","Neoptolemos","Ninurta","Nanna","Lachesis","Hydra","Hathor","Hanish","Aruru","Selvans","Laomedon","Naxos","Anu","Soviet","Eris","Artemis","Megara","Thasos","Penthesilea","Calchas","Morpheus","Ennead","Iphigenia","Utu","ThothAether","Aphrodite","Choephori","Moscow","Euripides","Maia","Laran","Deidameia","Engels","Mount Ida","Hephaestus","Lykia","Heracleidae","Februus","Anuket","Apis","Oceanus","Nusku","Archimedes","Cautha","Nereid","Cronus","Leto","Serapis","Tiamat","Culsu","Plataea","Charontes","Andromeda","Erymanthia","Nethuns","Rhesus","Persephone","Phobe","Nike","Hippolyta","Theseus","Qingu","Nut","Hebe","Deadulus","Ellil","Atum","Calliope","Andromache","Agamemnon","Athens","Mami","Lycus","Berkeley","Hellespont","Siduri","Nemaea","Hypnos","Silenus","Ra","Kek","Asclepius","Enceladus","Trotsky","Khonsu","Midas","Meresger","Gerra","Lenin","Urania","Bastet","Feronia","Heh","Euterpe","Theba","Anshar","Nash","Erato","Melpomene","Argolida","Phrygia","Chios","Poseidon","Hyperion","Ninsun","Eros","Eos","Hercules","Terpischore","Apep","Myrmidon","Ishum","Thesan","Pyrrhus","Helene","Alexandros","Hesiod","Erinyes","Rhea","Ares","Mullitu","Lahmu","Anubis","Atlas","Menelaus","Thetis","Horus","Voltumna","Janus","Chryseis","Ashur","Cerynea","Cyclope","Friedrich","Pasiphae","Hespera ","Athos","Nimnah","Boreas","Red","Shamash","Aeschylus","Summanus","Hygeia","Anat","Ninlil","Naunet","Kakka","Oedipus","Fama","Notus","Kishar","Olympus","Leningrad","Dumkina","Zeus","Shu","Klytamnestra","Mors","Hermes","Gaea","Philoctetes","Antaios","Priam","Shullat","Sophocles","Min","Gushkin banda","Marx","Lahamu","Adad","Demeter"};
+std::vector<std::string> starNames;
+std::set<std::string> validNames;
 std::set<std::string> homeworlds;
 typedef unsigned char byt;
 
@@ -29,7 +34,7 @@ enum PLANET_DATA{
     PARENT_STAR,
     ORBIT,
     TYPE,
-    SIZE,//0 = tiny 4=huge
+    PLANETSIZECLASS,//0 = tiny 4=huge
     G,//1 = normal
     UNKNOWNA,
     ENVIRONMENT,//index into environments
@@ -43,6 +48,8 @@ enum PLANET_DATA{
     FLAGS,//2 = soil
     NUM_PLANET_DATA
 };
+
+
 #define PLANET_SIZE (NUM_PLANET_DATA+2)
 class Star;
 class Planet {
@@ -50,6 +57,10 @@ public:
     Planet() {
         colony=0;
         memset(data,0,NUM_PLANET_DATA);
+    }
+    bool isEmpty() const{
+        Planet p;
+        return memcmp(this,&p,sizeof(Planet))==0;
     }
 #pragma pack(1)
     short colony;//-1 = uncolonized
@@ -81,10 +92,18 @@ public:
 };
 class Star {
 public:
+    
     Star() {
         memset(this,0,sizeof(Star));
         unknownF[16]=255;//marks it as a dead system
         unknownF[17]=255;        
+    }
+    bool isEmpty() const{
+        Star empty;
+        return memcmp(this,&empty,sizeof(Star))==0;
+    }
+    bool within (double minx,double miny,double maxx,double maxy)const {
+        return (x>=minx&&y>=miny&&x<=maxx&&y<=maxy);
     }
 #pragma pack(1)
     char name[0xf];
@@ -158,6 +177,9 @@ public:
     void readStar(const byt *data) {
         memcpy(name,data,0xf);
         data+=0xf;
+        if (validNames.find(name)==validNames.end()) {
+            validNames.insert(name);
+        }
         x=data[1];
         x*=0x100;
         x|=data[0];
@@ -209,10 +231,10 @@ public:
         memcpy(data,name,0xf);
         data+=0xf;
         data[0]=(byt)(x&0xff);
-        data[1]=(byt)((x/0x100)&0xff);
+        data[1]=(byt)((((unsigned short)x)/0x100)&0xff);
         data+=0x2;
         data[0]=(byt)(y&0xff);
-        data[1]=(byt)((y/0x100)&0xff);
+        data[1]=(byt)((((unsigned short)y)/0x100)&0xff);
         data+=0x2;        
         data[0]=size;
         data++;
@@ -253,12 +275,16 @@ public:
         data+=0x1d;        
     }    
     void printStar(Planet*planetTable, Star*starTable) {
+        if (this->isEmpty()) {
+            printf("Empty system\n");
+            return;
+        }
         printf("%s (%d, %d) owner:%d\n",name,x,y,owner);
         printf("[[[\n");
         for (int i=0;i<5;++i) {
             if (planets[i]!=-1) {
                 printf("planet[%d]: %d\n",i,planets[i]);
-                if (false&&planetTable) {
+                if (planetTable) {
                     planetTable[planets[i]].printPlanet(starTable);
                 }else {
                     
@@ -284,25 +310,50 @@ void Planet::printPlanet(Star* starTable) {
 #define PLANET_OFFSET 0x162E9
 #define NUM_STARS 72
 #define NUM_PLANETS 108
-Star stars[NUM_STARS];
-Planet planets[NUM_PLANETS];
-
-bool isHomeworld(const Star&star) {
-    if (homeworlds.find(star.name)!=homeworlds.end()) return true;
+bool isHomeworld(const Star&star, Planet planets[]) {
     if (star.x==0&&star.y==0)
         return false;
-    if (star.owner!=255)
-        return true;
-    return false;
+    bool retval=false;
+    for (int i=0;i<5;++i) {
+        if (star.planets[i]==-1) {
+            if (planets[star.planets[i]].colony!=-1) {
+                //printf("Primary method for identifying %s as homeworld %d\n",star.name,planets[star.planets[i]].colony);
+                //return true;
+                //everything seems to be zero on turn 0
+            }
+        }
+    }
+    
+    if (star.owner!=255) {
+        retval = true;
+    }
+    if (homeworlds.find(star.name)!=homeworlds.end()) {
+        printf("Fallback in identifying %s as homeworld\n",star.name);
+        retval = true;
+    }
+    if (retval) {//clear us from a valid name
+        if (validNames.find(star.name)!=validNames.end()) {
+            validNames.erase(star.name);
+        }
+    }
+    return retval;
 }
 
-void wipeQuadrant(double minx, double miny, double maxx, double maxy) {
+void wipeQuadrant(Star stars[],Planet planets[],double minx, double miny, double maxx, double maxy) {
     Star empty;//last star is our empty one?
     empty.x=0;
     empty.y=0;
     memset(empty.name,0,sizeof(empty.name));
+    for (int i=0;i<NUM_PLANETS;++i) {
+        int parent = planets[i].data[PARENT_STAR];
+        if (parent!=-1) {
+            if (!isHomeworld(stars[parent],planets)) {
+                planets[i] = Planet();
+            }
+        }
+    }
     for (int i=0;i<NUM_STARS;++i) {
-        if (!isHomeworld(stars[i])) {
+        if (!isHomeworld(stars[i],planets)) {
             if (stars[i].x>=minx&&stars[i].y>=miny&&
                 stars[i].x<=maxx&&stars[i].y<=maxy) {
                 stars[i]=empty;
@@ -316,10 +367,10 @@ void wipeQuadrant(double minx, double miny, double maxx, double maxy) {
     }
 }
 std::vector<int>orphanHomeworlds;
-int findHomeworld (double minx,double miny,double maxx,double maxy) {
+int findHomeworld (Star stars[], Planet planets[], double minx,double miny,double maxx,double maxy) {
     int retval=-1;
     for (int i=0;i<NUM_STARS;++i) {
-        if (isHomeworld(stars[i])) {
+        if (isHomeworld(stars[i],planets)) {
             //printf("Potential homeworld located %s at %d %d Is it between (%f %f) - (%f %f)\n",stars[i].name,stars[i].x,stars[i].y,minx,miny,maxx,maxy);
             if (stars[i].x>=minx&&stars[i].y>=miny&&
                 stars[i].x<=maxx&&stars[i].y<=maxy) {
@@ -333,40 +384,105 @@ int findHomeworld (double minx,double miny,double maxx,double maxy) {
     }
     return retval;
 }
-void copyQuadrant(double minx,double miny,double maxx,double maxy,
-                  double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY) {
-    //FIXME;
+template <class Planet> int nextFree(Planet destPlanets[], int curFree, int max_planets) {
+    for (int i=curFree;i<max_planets;++i) {
+        if (destPlanets[i].isEmpty()) {
+            return i;
+        }
+    }
+    return -1;
 }
-int fixupHomeworlds(double minx,double miny,double maxx,double maxy,
-                     double homeX, double homeY) {
+void copyQuadrant(
+    Star destStars[], Planet destPlanets[],double minx,double miny,double maxx,double maxy,
+    Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY) {
+    int freeStar = nextFree(destStars,0,NUM_STARS);
+    int freePlanet = nextFree(destPlanets,0,NUM_PLANETS);
+    for (int i=0;i<NUM_STARS;++i) {
+        if (stars[i].x>=sourceminx&&
+            stars[i].x<=sourcemaxx&&
+            stars[i].y>=sourceminy&&
+            stars[i].y<=sourcemaxy&&
+            !isHomeworld(stars[i],planets)) {
+            destStars[freeStar] = stars[i];//copy relevant data about the star
+            size_t starNameIndex = rand()%starNames.size();
+            std::string curName = starNames[starNameIndex];
+            starNames[starNameIndex]=starNames.back();
+            starNames.pop_back();
+            if (starNames.empty()) {
+                printf("Falling back to builtin names\n");
+                for (int i=0;i<sizeof(possibleNames)/sizeof(char*);++i) {
+                    starNames.push_back(possibleNames[i]);//fall back to builtin names
+                }
+            }
+            strncpy(destStars[freeStar].name,curName.c_str(),0xf);
+            destStars[freeStar].name[0xe]='\0';//zero terminate
+            //fixup x and y coordinates
+            if (flipX&&sourceminx!=minx) {//only flip if we're on the opposite side
+                int delx = stars[i].x-sourceminx;
+                destStars[freeStar].x=maxx-delx;
+            }
+            if (flipY&&sourceminy!=miny) {//only flip if we're on the opposite side
+                int dely = stars[i].y-sourceminy;
+                destStars[freeStar].y=maxy-dely;
+            }
+            //fixup planets
+            for (int j=0;j<5;++j) {
+                if (stars[i].planets[j]!=-1) {//otherwise we have it covered because the gets operator should do it fine
+                    if (freePlanet==-1) {
+                        printf ("Failure to find available planet index for %s : quadrant too dense\n",stars[i].name);
+                        destStars[freeStar].planets[j]=-1;
+                    }else {
+                        int planetIdx = stars[i].planets[j];
+                        destPlanets[freePlanet] = planets[planetIdx];
+                        destPlanets[freePlanet].data[PARENT_STAR] = freeStar;
+                        destStars[freeStar].planets[j]=freePlanet;
+                        freePlanet = nextFree(destPlanets,freePlanet,NUM_PLANETS);
+                        if (freePlanet==-1) {
+                            printf ("Failure to find available planet index: quadrant too dense\n");
+                        }
+                    }
+                }
+            }
+            freeStar = nextFree(destStars,freeStar,NUM_STARS);
+            if (freeStar==-1) {
+                printf ("Failure to find available star index: quadrant too dense\n");
+                return;
+            }
+        }
+
+    }
+
+    
+}
+bool fixupHomeworlds(Star stars[], Planet planets[], double minx,double miny,double maxx,double maxy,
+                    double homeX, double homeY, int whichHomeworld) {
     int count=0;
     for (int i=0;i<NUM_STARS;++i) {
-        if (stars[i].x>=minx&&stars[i].y>=miny&&
-            stars[i].x<=maxx&&stars[i].y<=maxy) {
-            if (isHomeworld(stars[i])) {
-                ++count;
-                if (count==1) {
-                    stars[i].x=minx+homeX;
-                    stars[i].y=miny+homeY;
-                }else {
-                    orphanHomeworlds.push_back(i);
+        if (isHomeworld(stars[i],planets)) {
+            if (count++==whichHomeworld) {
+                stars[i].x=homeX;
+                stars[i].y=homeY;                
+                for (int j=0;j<5;++j) {
+                    int planetIdx = stars[i].planets[j];
+                    if (planetIdx!=-1) {
+                        if (planets[planetIdx].data[PLANETSIZECLASS]==4) {//we know players cannot select huge planets in the race pix
+                            planets[planetIdx].data[MINERALS]=2;//set huge planets to abundant for sure since they aren't home planets
+                            
+                        }
+                    }
                 }
+                return true;
             }
         }
     }
-    if (count==0) {
-        if (orphanHomeworlds.size()) {
-            int i = orphanHomeworlds.back();
-            orphanHomeworlds.pop_back();
-            stars[i].x=minx+homeX;
-            stars[i].y=miny+homeY;
-            ++count;
-        }
-    }
-    return count;
+    return false;
 }
 
 int main (int argc, char**argv) {
+    Star stars[NUM_STARS];
+    Planet planets[NUM_PLANETS];
+    Star newStars[NUM_STARS];
+    Planet newPlanets[NUM_PLANETS];
     homeworlds.insert("Sol");
     homeworlds.insert("Nazin");
     homeworlds.insert("Meklon");
@@ -382,7 +498,6 @@ int main (int argc, char**argv) {
     homeworlds.insert("Trilar");
 
     FILE * fp = fopen(argv[1],"rb");
-    FILE * output = fopen(argv[2],"r+b");
     
     fseek(fp,0,SEEK_END);
     size_t fileSize = ftell(fp);
@@ -390,75 +505,124 @@ int main (int argc, char**argv) {
     byt * data = (byt*)malloc(fileSize);
     fread(data,1,fileSize,fp);
     fclose(fp);
-
-    for (int i=0;i<NUM_PLANETS;++i) {
-        const byt * curData = data+(PLANET_OFFSET+i*PLANET_SIZE);
-        Planet planetA;
-        memcpy(&planetA,curData,PLANET_SIZE);
-        Planet planetB;
-        planetB.readPlanet(curData);
-        //planetB.printPlanet(NULL);
-        if (memcmp(&planetA,&planetB,PLANET_SIZE)) {
-            printf("Endianness Mismatch: luckily we coded for that\n");
-        }
-        byt testIdempotency[PLANET_SIZE];
-        planetB.writePlanet(testIdempotency);
-        planetA.readPlanet(testIdempotency);
-        if (memcmp(&planetA,&planetB,PLANET_SIZE)) {
-            printf("Idempotency Mismatch: FAIL\n");
-        }
-        if (memcmp(testIdempotency,curData,PLANET_SIZE)) {
-            printf("Idempotency Mismatch: FAIL Internal\n");
-        }
-        planets[i]=planetB;
+    FILE * output;
+    size_t writeFileSize=0;
+    byt * writeData;
+    if (argc>2) {
+        output = fopen(argv[2],"rb");
+        fseek(output,0,SEEK_END);
+        writeFileSize = ftell(output);
+        fseek(output,0,SEEK_SET);    
+        writeData = (byt*)malloc(fileSize);
+        fread(writeData,1,writeFileSize,output);
+        fclose(output);
     }
+    for (int doInput=(argc>2?0:1);doInput<2;++doInput) {
+        for (int i=0;i<NUM_PLANETS;++i) {
+            const byt * curData = (doInput?data:writeData)+(PLANET_OFFSET+i*PLANET_SIZE);
+            Planet planetA;
+            memcpy(&planetA,curData,PLANET_SIZE);
+            Planet planetB;
+            planetB.readPlanet(curData);
+            //planetB.printPlanet(NULL);
+            if (memcmp(&planetA,&planetB,PLANET_SIZE)) {
+                printf("Endianness Mismatch: luckily we coded for that\n");
+            }
+            byt testIdempotency[PLANET_SIZE];
+            planetB.writePlanet(testIdempotency);
+            planetA.readPlanet(testIdempotency);
+            if (memcmp(&planetA,&planetB,PLANET_SIZE)) {
+                printf("Idempotency Mismatch: FAIL\n");
+            }
+            if (memcmp(testIdempotency,curData,PLANET_SIZE)) {
+                printf("Idempotency Mismatch: FAIL Internal\n");
+            }
+            if (doInput) {
+                planets[i]=planetB;
+            }else {
+                newPlanets[i]=planetB;
+            }
+        }
+    }
+    
     int maxx = -(1<<30);
     int minx = (1<<30);
     int maxy = -(1<<30);
     int miny = (1<<30);
-    for (int i=0;i<NUM_STARS;++i) {
-        const byt * curData = data+(STAR_OFFSET+i*STAR_SIZE);
-        Star starA;
-
-        memcpy(&starA,curData,STAR_SIZE);
+    for (int doInput=(argc>2?0:1);doInput<2;++doInput) {
+        for (int i=0;i<NUM_STARS;++i) {
+            const byt * curData = (doInput?data:writeData)+(STAR_OFFSET+i*STAR_SIZE);
+            Star starA;
+            
+            memcpy(&starA,curData,STAR_SIZE);
 //        starA.printStar();
-        Star starB;
-        starB.readStar(curData);
-        if (starB.x!=0||starB.y!=0) {
-            if (starB.x<minx) {
-                minx = starB.x;
+            Star starB;
+            starB.readStar(curData);
+            if (doInput) {
+                if (starB.x!=0||starB.y!=0) {
+                    if (starB.x<minx) {
+                        minx = starB.x;
+                    }
+                    if (starB.x>maxx) {
+                        maxx = starB.x;
+                    }
+                    if (starB.y<miny) {
+                        miny = starB.y;
+                    }
+                    if (starB.y>maxy) {
+                        maxy = starB.y;
+                    }
+                }else {
+                    //invalid system
+                }
+                
+                stars[i]=starB;
+            }else {
+                newStars[i]=starB;
             }
-            if (starB.x>maxx) {
-                maxx = starB.x;
+            if (memcmp(&starA,&starB,STAR_SIZE)) {
+                printf("Endianness Mismatch: luckily we coded for that\n");
             }
-            if (starB.y<miny) {
-                miny = starB.y;
+            byt testIdempotency[STAR_SIZE];
+            starB.writeStar(testIdempotency);
+            starA.readStar(testIdempotency);
+            if (memcmp(&starA,&starB,STAR_SIZE)) {
+                starB.writeStar(testIdempotency);
+                starA.readStar(testIdempotency);
+
+                printf("Idempotency Mismatch: FAIL\n");
+                if (!(starA==starB)) {
+                    printf("Idempotency Mismatch: FAIL B\n");
+                }
             }
-            if (starB.y>maxy) {
-                maxy = starB.y;
+            if (memcmp(testIdempotency,curData,STAR_SIZE)) {
+                printf("Idempotency Mismatch: FAIL Internal\n");
             }
-        }else {
-            //invalid system
-        }
-        
-        stars[i]=starB;
-        if (memcmp(&starA,&starB,STAR_SIZE)) {
-            printf("Endianness Mismatch: luckily we coded for that\n");
-        }
-        byt testIdempotency[STAR_SIZE];
-        starB.writeStar(testIdempotency);
-        starA.readStar(testIdempotency);
-        if (memcmp(&starA,&starB,STAR_SIZE)) {
-            printf("Idempotency Mismatch: FAIL\n");
-            if (!(starA==starB)) {
-                printf("Idempotency Mismatch: FAIL B\n");
-            }
-        }
-        if (memcmp(testIdempotency,curData,STAR_SIZE)) {
-            printf("Idempotency Mismatch: FAIL Internal\n");
         }
     }
+    if (argc==2) {
+        for (int i=0;i<NUM_STARS;++i) {
+            stars[i].printStar(planets,stars);
+        }
+        printf("Bounds: (%d,%d) - (%d,%d)\n",minx,miny,maxx,maxy);
+        return 0;
+    }
     printf("Bounds: (%d,%d) - (%d,%d)\n",minx,miny,maxx,maxy);
+    if (true) {
+        for (int i=0;i<NUM_STARS;++i) {
+            isHomeworld(stars[i],planets);
+        }
+        for (int i=0;i<NUM_STARS;++i) {
+            isHomeworld(newStars[i],newPlanets);
+        }
+        for (std::set<std::string>::iterator i=validNames.begin(),ie=validNames.end();i!=ie;++i) {
+            starNames.push_back(*i);
+        }
+    }else {
+        for (int i=0;i<sizeof(possibleNames)/sizeof(char*);++i) {
+            starNames.push_back(possibleNames[i]);
+        }
+    }
     double percent_safe_zone=.03125;
     double wid = maxx-minx;
     double hei = maxy-miny;
@@ -500,7 +664,7 @@ int main (int argc, char**argv) {
     {
         std::set<int>homeworldlessQuadrant;
         double homeX, homeY;
-        for (int doPlace=0;doPlace<3;++doPlace) {
+        for (int doPlace=0;doPlace<2;++doPlace) {
             int count=0;
             for (int x=0;x<numX;++x) {
                 for (int y=0;y<numY;++y) {
@@ -536,36 +700,28 @@ int main (int argc, char**argv) {
                             sourceminy=localminy;
                             sourcemaxx=localmaxx;
                             sourcemaxy=localmaxy;
-                            int homeIndex = findHomeworld (localminx,localminy,localmaxx,localmaxy);
+                            int homeIndex = findHomeworld (stars,planets,localminx,localminy,localmaxx,localmaxy);
                             if (homeIndex==-1) {
                                 printf("Cannot find homeworld in section %d...exiting\n",slice);
                                 return -1;
                             }else {
                                 Star homeSystem = stars[homeIndex];
-                                printf("Homeworld located at %s\n",homeSystem.name);
                                 homeX = ((flipX&&x)?localmaxx-homeSystem.x:homeSystem.x-localminx);
-                                homeY = ((flipY&&y)?localmaxy-homeSystem.y:homeSystem.y-localminx);
+                                homeY = ((flipY&&y)?localmaxy-homeSystem.y:homeSystem.y-localminy);
+
+                                printf("Homeworld located at %s %f %f (%d %d)\n",homeSystem.name,homeX,homeY,homeSystem.x,homeSystem.y);
                             }
-                        }else {
-                            wipeQuadrant(localminx,localminy,localmaxx,localmaxy);
                         }
+                        wipeQuadrant(newStars,newPlanets,localminx,localminy,localmaxx,localmaxy);
                     }else {
-                        if (slice!=count) {//copy only if the slice isn't the count
-                            if(doPlace==1) {
-                                copyQuadrant(localminx,localminy,localmaxx,localmaxy,
-                                             sourceminx,sourceminy,sourcemaxx,sourcemaxy,flipX,flipY);
-                                if (0==fixupHomeworlds(localminx,localminy,localmaxx,localmaxy,
-                                                       (flipX&&x)?maxx-homeX:homeY+localminy,(flipY&&y)?maxy-homeY:homeY+localminy)) {
-                                    homeworldlessQuadrant.insert(count);
-                                }
-                            }else if (doPlace==2) {
-                                if (homeworldlessQuadrant.find(count)!=homeworldlessQuadrant.end()){
-                                    if (0==fixupHomeworlds(localminx,localminy,localmaxx,localmaxy,
-                                                           (flipX&&x)?maxx-homeX:homeY+localminy,(flipY&&y)?maxy-homeY:homeY+localminy)) {
-                                        printf("Failed on second try to fixup homeworld in quadrant %d\n",count);
-                                    }
-                                }
-                            }
+                        copyQuadrant(newStars,newPlanets, localminx,localminy,localmaxx,localmaxy,
+                                     stars,planets,sourceminx,sourceminy,sourcemaxx,sourcemaxy,flipX,flipY);
+                        int newHomeX = (flipX&&x)?localmaxx-homeX:homeX+localminx;
+                        int newHomeY = (flipY&&y)?localmaxy-homeY:homeY+localminy;
+                        printf("Placing homeworld at %d %d (From %f %f)\n",newHomeX, newHomeY, homeX, homeY);
+                        if (!fixupHomeworlds(newStars,newPlanets, localminx,localminy,localmaxx,localmaxy,
+                                             newHomeX,newHomeY,count)) {
+                            printf("Could not find %d th homeworld\n",count);
                         }
                     }
                     ++count;
@@ -574,9 +730,30 @@ int main (int argc, char**argv) {
         }
         
     }
-    for (int i=0;i<NUM_STARS;++i) {
-        stars[i].printStar(planets,stars);
-    }
     free(data);
-    
+    if (argc>4) {//if we can write to a file
+        output = fopen(argv[4],"w+b");//overwrite the output save file
+        fwrite(writeData,1,writeFileSize,output);
+        free(writeData);
+        fseek(output,PLANET_OFFSET,SEEK_SET);
+        for (int i=0;i<NUM_PLANETS;++i) {
+            unsigned char planetData[PLANET_SIZE];
+            newPlanets[i].writePlanet(planetData);
+            fwrite(planetData,1,PLANET_SIZE,output);
+        }
+        fseek(output,STAR_OFFSET,SEEK_SET);
+        for (int i=0;i<NUM_STARS;++i) {
+            unsigned char starData[STAR_SIZE];
+            newStars[i].writeStar(starData);
+            fwrite(starData,1,STAR_SIZE,output);
+        }
+        fclose(output);
+        char *args[2];
+        args[0]=argv[0];
+        args[1]=argv[4];
+        return main(2,args);
+    }else for (int i=0;i<NUM_STARS;++i) {
+        newStars[i].printStar(newPlanets,newStars);
+    }
+
 }
