@@ -383,7 +383,6 @@ bool isHomeworld(const Star&star, Planet planets[]) {
         retval = true;
     }
     if (homeworlds.find(star.name)!=homeworlds.end()) {
-        printf("Fallback in identifying %s as homeworld\n",star.name);
         retval = true;
     }
     if (retval) {//clear us from a valid name
@@ -479,7 +478,7 @@ Star& crossMapStarCopy(Star&dst, const Star&src) {
 void copyQuadrantStars(
     Star destStars[], Planet destPlanets[],double minx,double miny,double maxx,double maxy,
     Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY, std::map<int,int> &starMap, std::vector<int> &freePlanets, int &freeStar) {
-    nextFreeStar(destStars,0,NUM_STARS);
+    freeStar = nextFreeStar(destStars,destPlanets,freeStar);//in case we're at a homeworld
     for (int i=0;i<NUM_STARS;++i) {
         if (stars[i].x>=sourceminx&&
             stars[i].x<=sourcemaxx&&
@@ -506,7 +505,7 @@ void copyQuadrantStars(
             int delx = stars[i].x-sourceminx;
 
             int dely = stars[i].y-sourceminy;
-            starMap[i]=freeStar;
+            starMap[freeStar]=i;
             destStars[freeStar].x=delx+minx;
             destStars[freeStar].y=dely+miny;
             if (flipX&&sourceminx!=minx) {//only flip if we're on the opposite side
@@ -527,8 +526,15 @@ void copyQuadrantStars(
                 if (destStars[i].planets[j]!=-1) {//otherwise we have it covered because the gets operator should do it fine
                     --numPlanetsNeeded;
                     if (numPlanetsNeeded<0) {
-                        freePlanets.push_back(destStars[i].planets[j]);
-                        /////FIXME///// this should happen, but we don't want to corrupt the save just yet destStars[i].planets[j]=-1;
+                        if (destPlanets[destStars[i].planets[j]].data[PARENT_STAR]==i) {
+                            freePlanets.push_back(destStars[i].planets[j]);
+                            destStars[i].planets[j]=-1;
+                        }else {
+                            if (destStars[i].planets[j]!=0) {
+                                printf("Strange planet that doesn't reference parent in source save\n");
+                            }
+                        }
+
                     }
                 }
             }
@@ -564,7 +570,9 @@ bool fixupHomeworlds(Star stars[], Planet planets[], double minx,double miny,dou
     }
     return false;
 }
-
+void crossMapPlanetCopy(Planet&dst, const Planet&src) {
+    dst=src;
+}
 int main (int argc, char**argv) {
     Star stars[NUM_STARS];
     Planet planets[NUM_PLANETS];
@@ -756,10 +764,10 @@ int main (int argc, char**argv) {
     {
         std::set<int>homeworldlessQuadrant;
         std::vector<int> freePlanets;
-        std::map<int,int> starMap;//maps from source star to destination star
+        std::map<int,int> starMap;//destination star to source star (multiple desitnations may reference a single source)
         int freeStar=0;
         double homeX, homeY;
-        for (int doPlace=0;doPlace<3;++doPlace) {
+        for (int doPlace=0;doPlace<2;++doPlace) {
             int count=0;
             for (int x=0;x<numX;++x) {
                 for (int y=0;y<numY;++y) {
@@ -789,7 +797,7 @@ int main (int argc, char**argv) {
                         }
                     }
                     if (!doPlace) {
-                        printf("Searching range (%f %f, %f %f)\n",localminx,localminy,localmaxx,localmaxy);
+                        //printf("Searching range (%f %f, %f %f)\n",localminx,localminy,localmaxx,localmaxy);
                         if (slice==count) {
                             sourceminx=localminx;
                             sourceminy=localminy;
@@ -818,16 +826,97 @@ int main (int argc, char**argv) {
                                              newHomeX,newHomeY,count)) {
                             printf("Could not find %d th homeworld\n",count);
                         }
-                    }else if (doPlace==2) {
-                        for (int i=0;i<NUM_STARS;++i) {
-                            Star star=stars[i];
-                            if (starMap.find(i)!=starMap.end()&&!star.isEmpty()) {
-                                Star&dst = newStars[starMap[i]];
-                                
+
+                    }
+                    ++count;
+                }
+            }
+        }
+        {//go through and copy planets
+            while ((freeStar=nextFreeStar(newStars,newPlanets,freeStar))!=-1) {
+                //if (!isHomeworld(newStars[freeStar],newPlanets)) {freeStar should look for homeworlds
+                //uSELESS STAR
+                strcpy(newStars[freeStar].name,"DANGER");
+                printf("Found a free star\n");
+                for (int p=0;p<5;++p) {
+                    if (newStars[freeStar].planets[p]!=-1) {
+                        if (newPlanets[newStars[freeStar].planets[p]].data[PARENT_STAR]==freeStar) {
+                            freePlanets.push_back(newStars[freeStar].planets[p]);
+                        }else {
+                            if (newStars[freeStar].planets[p]!=0) {
+                                printf("Odd syste in save file that's cross referenced\n");
                             }
                         }
                     }
-                    ++count;
+                    newStars[freeStar].planets[p]=-1;
+                }
+                //}
+                ++freeStar;
+            } 
+            
+            for (int index=0;index<NUM_STARS;++index) {
+                Star &dst=newStars[index];
+                if (starMap.find(index)!=starMap.end()) {
+                    int destStarIndex = index;
+                    
+                    Star star = stars[starMap[index]];
+                    for (int p=0;p<5;++p) {
+                        if (dst.planets[p]!=-1) {
+                            if (newPlanets[dst.planets[p]].data[PARENT_STAR]==destStarIndex) {
+                                freePlanets.push_back(dst.planets[p]);//this will guarantee we pop these guys first to minimize change we can believe in
+                            }else if (dst.planets[p]!=0) {
+                                printf("Odder syste in save file that's cross referenced\n");
+                            }
+                            dst.planets[p]=-1;
+                        }
+                    }
+                    for (int p=0;p<5;++p) {
+                            if (star.planets[p]!=-1) {
+                                if (freePlanets.size()) {
+                                    int newPlanetIndex = freePlanets.back();
+                                    freePlanets.pop_back();
+                                    short originalOwner = newPlanets[newPlanetIndex].data[PARENT_STAR];
+                                    if (originalOwner>=0&&originalOwner<NUM_STARS) {
+                                        const Star &check = newStars[originalOwner];
+                                        for (int pp=0;pp<5;++pp) {
+                                            if (check.planets[pp]==newPlanetIndex&&check.planets[pp]!=-1) {
+                                                printf("FATAL PLANETARY CROSS ALIGNMENT\n");
+                                            }
+                                        }
+                                    }
+                                    crossMapPlanetCopy(newPlanets[newPlanetIndex],planets[star.planets[p]]);
+                                    dst.planets[p]=newPlanetIndex;
+                                    newPlanets[newPlanetIndex].data[PARENT_STAR]=destStarIndex;
+                                }else {
+                                    printf("Unable to allocate free planet for star %s\n",dst.name);
+                                }
+                            }
+                        }
+                }else {
+                    printf("Could not locate source for %d\n",index);
+                }
+            }
+            while (!freePlanets.empty()) {
+                newPlanets[freePlanets.back()]=Planet();
+                freePlanets.pop_back();
+            }
+            for (int index=0;index<NUM_STARS;++index) {
+                bool error=false;
+                for (int j=0;j<5;++j) {
+                    int ind = newStars[index].planets[j];
+                    if (ind!=-1) {
+                        if (newPlanets[ind].data[PARENT_STAR]!=index) {
+                            newStars[index].planets[j]=-1;
+                            error=true;
+                        }
+                    }
+                }
+                if (error) {
+                    if (starMap.find(index)!=starMap.end()) {
+                        printf("MISMATCH ERROR in system %s index %d mapping to %s\n",newStars[index].name,index,stars[starMap[index]].name);
+                    }else {
+                        printf("MISMATCH ERROR in system %s index %d\n",newStars[index].name,index,stars[starMap[index]].name);
+                    }
                 }
             }
         }
