@@ -16,7 +16,7 @@
 #include <set>
 #include <string>
 #include <vector>
-
+#include <map>
 
 const char * possibleNames[]={"Rhodos","Delphi","Horta","Cassandra","Sethlans","Ismareos","Diomedes","Thrace","Pontus","Thesseus","Nortia","Stymphalus","Thebes","Hecaton","Arachne","Pactolus","Eretria","Hera","Leon","Euphrosyne","Augeas","Zephir","Eurus","Mummu","Ajax","Scyros","Icarus","Hehet","Dionysus","Ammon","Lerna","Neith","Postverta","Nekhbet","Thelxepia","Coeus","Astarte","Alcmene","Sphinx","Nepthys","Kingu","Iphicles","Sparta","Iapetus","Clytaemnestra","Kalkal","Alcestis","Iris","Tartarus","Bel","LotosAni","Calypso","Aglaia","Vladimir","Geb","Argos","Samos","Aegeus","Aplu","Apollo","Ninhursaga","Sobek","Antu","Imhotep","Khepry","Khnum","Vertumus","Paros","Perseus","Aeolus","Nabu","Clio","Marduk","Apsu","Inanna","Laius","Turan","Mammetum","Epimetheus","ZaltuAmaunet","Aton","Aia","Telamon","Ea","Bes","Polyhymnia","Charun","Shara","Union","Metope","Nin ildu","Hesione","Delos","Peisinoe","Thracia","Hades","Callen","Tenedos","Tyndareus","Peleus","Hecuba","Nemesis","Belet ili","Nammu","Nintu","Hestia","Laocoon","Atropos","Nemea","Clotho","Chalcis","Gibil","Aglaophonos","Sekhmet","Keket","Crete","Mut","Thalia","Tethys","Enki","Patroclus","Hecate","Enurta","Osiris","Tinia","Erebus","Amun","Enlil","Nin agal ","Ptah","Papsukkal ","Karl","Ishtar","Cetus","Sin","Minotaur","Seth","Cepheus","Maat","Molpe","Pandora","Isis","Olympia","Athena","Jocasta","Neoptolemos","Ninurta","Nanna","Lachesis","Hydra","Hathor","Hanish","Aruru","Selvans","Laomedon","Naxos","Anu","Soviet","Eris","Artemis","Megara","Thasos","Penthesilea","Calchas","Morpheus","Ennead","Iphigenia","Utu","ThothAether","Aphrodite","Choephori","Moscow","Euripides","Maia","Laran","Deidameia","Engels","Mount Ida","Hephaestus","Lykia","Heracleidae","Februus","Anuket","Apis","Oceanus","Nusku","Archimedes","Cautha","Nereid","Cronus","Leto","Serapis","Tiamat","Culsu","Plataea","Charontes","Andromeda","Erymanthia","Nethuns","Rhesus","Persephone","Phobe","Nike","Hippolyta","Theseus","Qingu","Nut","Hebe","Deadulus","Ellil","Atum","Calliope","Andromache","Agamemnon","Athens","Mami","Lycus","Berkeley","Hellespont","Siduri","Nemaea","Hypnos","Silenus","Ra","Kek","Asclepius","Enceladus","Trotsky","Khonsu","Midas","Meresger","Gerra","Lenin","Urania","Bastet","Feronia","Heh","Euterpe","Theba","Anshar","Nash","Erato","Melpomene","Argolida","Phrygia","Chios","Poseidon","Hyperion","Ninsun","Eros","Eos","Hercules","Terpischore","Apep","Myrmidon","Ishum","Thesan","Pyrrhus","Helene","Alexandros","Hesiod","Erinyes","Rhea","Ares","Mullitu","Lahmu","Anubis","Atlas","Menelaus","Thetis","Horus","Voltumna","Janus","Chryseis","Ashur","Cerynea","Cyclope","Friedrich","Pasiphae","Hespera ","Athos","Nimnah","Boreas","Red","Shamash","Aeschylus","Summanus","Hygeia","Anat","Ninlil","Naunet","Kakka","Oedipus","Fama","Notus","Kishar","Olympus","Leningrad","Dumkina","Zeus","Shu","Klytamnestra","Mors","Hermes","Gaea","Philoctetes","Antaios","Priam","Shullat","Sophocles","Min","Gushkin banda","Marx","Lahamu","Adad","Demeter"};
 std::vector<std::string> starNames;
@@ -24,6 +24,39 @@ std::set<std::string> validNames;
 std::set<std::string> homeworlds;
 typedef unsigned char byt;
 
+std::map<std::string,int> hist[0x1f];
+void histogram (const unsigned char *data, size_t size) {
+    std::string dat ((const char*)data,size);
+    if (hist[size].find(dat)!=hist[size].end()) {
+        hist[size][dat]++;
+    }else {
+        hist[size][dat]=1;
+    }
+}
+char nibbleToHex(unsigned char b) {
+    if (b>=10) return (b-10)+'a';
+    return b+'0';
+}
+void printHist() {
+    for (int i=0;i<sizeof(hist)/sizeof(hist[0]);++i) {
+        if (!hist[i].empty()) {
+            printf("Histogram for %d\n",i);
+            for (std::map<std::string,int>::iterator j=hist[i].begin(),je=hist[i].end();j!=je;++j) {
+                std::string s = j->first;
+                std::string hexS;
+                for (std::string::iterator si=s.begin(),sie=s.end();si!=sie;++si) {
+                    char byt = *si;
+                    unsigned char b = byt;
+                    
+                    hexS+=nibbleToHex(b/16);
+                    hexS+=nibbleToHex(b&15);
+                    
+                }
+                printf ("%s : %d\n",hexS.c_str(),j->second);
+            }
+        }
+    }
+}
 const char *environments[]={"toxic","radiated","barren","desert","tundra","ocean","swamp","arid","terran","gaia"};
 const char* planetdata[]={
     "STAR",
@@ -117,6 +150,15 @@ public:
     bool within (double minx,double miny,double maxx,double maxy)const {
         return (x>=minx&&y>=miny&&x<=maxx&&y<=maxy);
     }
+    void recordHist() const{
+        histogram(&unknownA,1);
+        histogram(unknownB,sizeof(unknownB));
+        histogram(unknownC,sizeof(unknownC));
+        histogram(unknownD,sizeof(unknownD));
+        histogram(unknownE,sizeof(unknownE));
+        histogram(unknownF,sizeof(unknownF));
+
+    }
 #pragma pack(1)
     char name[0xf];
     short x;
@@ -190,7 +232,8 @@ public:
         memcpy(name,data,0xf);
         data+=0xf;
         if (validNames.find(name)==validNames.end()) {
-            validNames.insert(name);
+            if (strlen(name)>2)
+                validNames.insert(name);
         }
         x=data[1];
         x*=0x100;
@@ -320,8 +363,8 @@ void Planet::printPlanet(Star* starTable) {
 #define STAR_OFFSET 0x17ad3//offset to star table
 #define STAR_SIZE 0x71
 #define PLANET_OFFSET 0x162E9
-#define NUM_STARS 72
-#define NUM_PLANETS 108
+#define NUM_STARS 71
+#define NUM_PLANETS 170
 bool isHomeworld(const Star&star, Planet planets[]) {
     if (star.x==0&&star.y==0)
         return false;
@@ -350,12 +393,15 @@ bool isHomeworld(const Star&star, Planet planets[]) {
     }
     return retval;
 }
+void wipeStars(Star stars[], Planet planets[]) {
 
-void wipeQuadrant(Star stars[],Planet planets[],double minx, double miny, double maxx, double maxy) {
-    Star empty;//last star is our empty one?
-    empty.x=0;
-    empty.y=0;
-    memset(empty.name,0,sizeof(empty.name));
+    for (int i=0;i<NUM_STARS;++i) {
+        if (!isHomeworld(stars[i],planets)) {
+            stars[i]=Star();
+        }
+    }
+}
+void wipePlanets(Star stars[], Planet planets[]) {
     for (int i=0;i<NUM_PLANETS;++i) {
         int parent = planets[i].data[PARENT_STAR];
         if (parent!=-1) {
@@ -364,6 +410,17 @@ void wipeQuadrant(Star stars[],Planet planets[],double minx, double miny, double
             }
         }
     }
+    int count=0;
+    for (int i=0;i<NUM_PLANETS;++i) {
+        if (planets[i].isEmpty()) count++;
+    }
+    printf("Empty Planet Slots %d/%d\n",count,NUM_PLANETS);
+}
+void wipeQuadrant(Star stars[],Planet planets[],double minx, double miny, double maxx, double maxy) {
+    Star empty;//last star is our empty one?
+    empty.x=0;
+    empty.y=0;
+    memset(empty.name,0,sizeof(empty.name));
     for (int i=0;i<NUM_STARS;++i) {
         if (!isHomeworld(stars[i],planets)) {
             if (stars[i].x>=minx&&stars[i].y>=miny&&
@@ -404,6 +461,21 @@ template <class Planet> int nextFree(Planet destPlanets[], int curFree, int max_
     }
     return -1;
 }
+Star& crossMapStarCopy(Star&dst, const Star&src) {
+    dst = src;
+    memset(dst.unknownF,0,0x1d);
+    for (int i=0;i<0x1d-6;++i) {
+        if (i!=0x12)
+            dst.unknownF[i]=0xff;
+    }
+    memset(dst.unknownB,0,0x11);
+    dst.unknownB[0xf]=4;//or should it be 6
+    
+    memset(dst.unknownC,0,0xf);
+    dst.unknownC[0xd]=0xff;
+    
+    return dst;
+}
 void copyQuadrant(
     Star destStars[], Planet destPlanets[],double minx,double miny,double maxx,double maxy,
     Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY) {
@@ -415,7 +487,7 @@ void copyQuadrant(
             stars[i].y>=sourceminy&&
             stars[i].y<=sourcemaxy&&
             !isHomeworld(stars[i],planets)) {
-            destStars[freeStar] = stars[i];//copy relevant data about the star
+            crossMapStarCopy(destStars[freeStar], stars[i]);//copy relevant data about the star
             size_t starNameIndex = rand()%starNames.size();
             std::string curName = starNames[starNameIndex];
             starNames[starNameIndex]=starNames.back();
@@ -614,9 +686,12 @@ int main (int argc, char**argv) {
     }
     if (argc==2) {
         for (int i=0;i<NUM_STARS;++i) {
+            stars[i].recordHist();
+
             stars[i].printStar(planets,stars);
         }
         printf("Bounds: (%d,%d) - (%d,%d)\n",minx,miny,maxx,maxy);
+        printHist();
         return 0;
     }
     printf("Bounds: (%d,%d) - (%d,%d)\n",minx,miny,maxx,maxy);
@@ -635,6 +710,8 @@ int main (int argc, char**argv) {
             starNames.push_back(possibleNames[i]);
         }
     }
+    wipePlanets(newStars,newPlanets);
+    wipeStars(newStars,newPlanets);
     double percent_safe_zone=.03125;
     double wid = maxx-minx;
     double hei = maxy-miny;
