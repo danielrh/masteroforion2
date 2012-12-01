@@ -363,7 +363,9 @@ void Planet::printPlanet(Star* starTable) {
 #define STAR_OFFSET 0x17ad3//offset to star table
 #define STAR_SIZE 0x71
 #define PLANET_OFFSET 0x162E9
-#define NUM_STARS 71
+#define MAX_NUM_STARS 71
+int NUM_STARS=MAX_NUM_STARS;
+int NUM_PLAYERS=8;
 #define NUM_PLANETS 170
 bool isHomeworld(const Star&star, Planet planets[]) {
     if (star.x==0&&star.y==0)
@@ -477,16 +479,16 @@ Star& crossMapStarCopy(Star&dst, const Star&src) {
 }
 void copyQuadrantStars(
     Star destStars[], Planet destPlanets[],double minx,double miny,double maxx,double maxy,
-    Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY, std::map<int,int> &starMap, std::vector<int> &freePlanets, int &freeStar) {
+    Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY, int whichSlice, std::map<int,int> &starMap, std::vector<int> &freePlanets, int &freeStar) {
     freeStar = nextFreeStar(destStars,destPlanets,freeStar);//in case we're at a homeworld
+    int sectorCount=1;//for the homeworld.
     for (int i=0;i<NUM_STARS;++i) {
         if (stars[i].x>=sourceminx&&
             stars[i].x<=sourcemaxx&&
             stars[i].y>=sourceminy&&
             stars[i].y<=sourcemaxy&&
             !isHomeworld(stars[i],planets)) {
-/*
-            //FIXME do lame copy which is now NOP
+
             size_t starNameIndex = rand()%starNames.size();
             std::string curName = starNames[starNameIndex];
             starNames[starNameIndex]=starNames.back();
@@ -499,12 +501,33 @@ void copyQuadrantStars(
             }
             strncpy(destStars[freeStar].name,curName.c_str(),0xf);
             destStars[freeStar].name[0xe]='\0';//zero terminate
-*/
+
             //fixup x and y coordinates
-            
             int delx = stars[i].x-sourceminx;
 
             int dely = stars[i].y-sourceminy;
+
+            if (!((sectorCount*NUM_PLAYERS)+whichSlice<NUM_STARS)) {
+                printf("Extra star %d (total of %d) detected beyond remainder\n",sectorCount,freeStar);
+                continue;//forget about stars that are too much
+            }
+            if (freeStar==-1) {
+                printf ("Failure to find available star index after for count %d: quadrant too dense\n",sectorCount);
+                return;
+            }
+
+            if (((sectorCount+1)*NUM_PLAYERS)>NUM_STARS) {//we're the orphans in the middle
+                delx = sourcemaxx-sourceminx;
+                dely = sourcemaxy-sourceminy;
+                int varX = (sourcemaxx-sourceminx)/10;
+                int varY = (sourcemaxy-sourceminy)/10;
+                int randomX = rand()%varX-varX/2;//10% variability
+                int randomY = rand()%varY-varY/2;
+                delx += randomX;
+                dely += randomY;
+                printf("Making random star in the middle\n");
+            }
+            ++sectorCount;
             starMap[freeStar]=i;
             destStars[freeStar].x=delx+minx;
             destStars[freeStar].y=dely+miny;
@@ -539,11 +562,8 @@ void copyQuadrantStars(
                 }
             }
             freeStar++;
+            int oldFreeStar = freeStar;
             freeStar = nextFreeStar(destStars,destPlanets,freeStar);//in case we'r4e at a homeworld
-            if (freeStar==-1) {
-                printf ("Failure to find available star index: quadrant too dense\n");
-                return;
-            }
         }
     }
 }
@@ -695,6 +715,13 @@ int main (int argc, char**argv) {
             }
         }
     }
+    for (int i=0;i<NUM_STARS;++i) {
+        if (newStars[i].isEmpty()) {
+            NUM_STARS=i;
+            printf("Setting num stars to %d\n",NUM_STARS);
+            break;
+        }
+    }
     if (argc==2) {
         for (int i=0;i<NUM_STARS;++i) {
             stars[i].recordHist();
@@ -706,7 +733,7 @@ int main (int argc, char**argv) {
         return 0;
     }
     printf("Bounds: (%d,%d) - (%d,%d)\n",minx,miny,maxx,maxy);
-    if (true) {
+    if (false) {
         for (int i=0;i<NUM_STARS;++i) {
             isHomeworld(stars[i],planets);
         }
@@ -737,12 +764,14 @@ int main (int argc, char**argv) {
     bool flipY=true;
     int numX=2,numY=2;
     if (mode=='q') {
+        NUM_PLAYERS=4;
         numX=2;
         numY=2;
         flipX=true;
         flipY=true;
     }
     if (mode=='h') {
+        NUM_PLAYERS=2;
         numX=2;
         numY=1;
         flipX=true;
@@ -750,12 +779,14 @@ int main (int argc, char**argv) {
 
     }
     if (mode=='v') {
+        NUM_PLAYERS=2;
         numX=1;
         numY=2;
         flipX=false;
         flipY=true;
     }
     if (mode=='x') {
+        NUM_PLAYERS=6;
         numX=3;
         numY=2;
         flipX=false;
@@ -818,7 +849,7 @@ int main (int argc, char**argv) {
                         //wipeQuadrant(newStars,newPlanets,localminx,localminy,localmaxx,localmaxy);
                     }else if (doPlace==1){
                         copyQuadrantStars(newStars,newPlanets, localminx,localminy,localmaxx,localmaxy,
-                                          stars,planets,sourceminx,sourceminy,sourcemaxx,sourcemaxy,flipX,flipY,starMap,freePlanets, freeStar);//saves up some free planets for us
+                                          stars,planets,sourceminx,sourceminy,sourcemaxx,sourcemaxy,flipX,flipY,count,starMap,freePlanets, freeStar);//saves up some free planets for us
                         int newHomeX = (flipX&&x)?localmaxx-homeX:homeX+localminx;
                         int newHomeY = (flipY&&y)?localmaxy-homeY:homeY+localminy;
                         printf("Placing homeworld at %d %d (From %f %f)\n",newHomeX, newHomeY, homeX, homeY);
@@ -836,7 +867,7 @@ int main (int argc, char**argv) {
             while ((freeStar=nextFreeStar(newStars,newPlanets,freeStar))!=-1) {
                 //if (!isHomeworld(newStars[freeStar],newPlanets)) {freeStar should look for homeworlds
                 //uSELESS STAR
-                strcpy(newStars[freeStar].name,"DANGER");
+                //strcpy(newStars[freeStar].name,"DANGER");
                 printf("Found a free star\n");
                 for (int p=0;p<5;++p) {
                     if (newStars[freeStar].planets[p]!=-1) {
