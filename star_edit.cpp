@@ -453,13 +453,13 @@ int findHomeworld (Star stars[], Planet planets[], double minx,double miny,doubl
     }
     return retval;
 }
-template <class Planet> int nextFree(Planet destPlanets[], int curFree, int max_planets) {
-    for (int i=curFree;i<max_planets;++i) {
-        if (destPlanets[i].isEmpty()) {
-            return i;
-        }
+int nextFreeStar(Star destStars[], Planet destPlanets[], int curFree) {
+    while (isHomeworld(destStars[curFree],destPlanets)) {
+        curFree++;
     }
-    return -1;
+    if (curFree<NUM_STARS)
+        return curFree;
+    else return -1;
 }
 Star& crossMapStarCopy(Star&dst, const Star&src) {
     dst = src;
@@ -476,18 +476,18 @@ Star& crossMapStarCopy(Star&dst, const Star&src) {
     
     return dst;
 }
-void copyQuadrant(
+void copyQuadrantStars(
     Star destStars[], Planet destPlanets[],double minx,double miny,double maxx,double maxy,
-    Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY) {
-    int freeStar = nextFree(destStars,0,NUM_STARS);
-    int freePlanet = nextFree(destPlanets,0,NUM_PLANETS);
+    Star stars[], Planet planets[], double sourceminx,double sourceminy,double sourcemaxx,double sourcemaxy,bool flipX,bool flipY, std::map<int,int> &starMap, std::vector<int> &freePlanets, int &freeStar) {
+    nextFreeStar(destStars,0,NUM_STARS);
     for (int i=0;i<NUM_STARS;++i) {
         if (stars[i].x>=sourceminx&&
             stars[i].x<=sourcemaxx&&
             stars[i].y>=sourceminy&&
             stars[i].y<=sourcemaxy&&
             !isHomeworld(stars[i],planets)) {
-            crossMapStarCopy(destStars[freeStar], stars[i]);//copy relevant data about the star
+/*
+            //FIXME do lame copy which is now NOP
             size_t starNameIndex = rand()%starNames.size();
             std::string curName = starNames[starNameIndex];
             starNames[starNameIndex]=starNames.back();
@@ -500,9 +500,16 @@ void copyQuadrant(
             }
             strncpy(destStars[freeStar].name,curName.c_str(),0xf);
             destStars[freeStar].name[0xe]='\0';//zero terminate
+*/
             //fixup x and y coordinates
+            
+            int delx = stars[i].x-sourceminx;
+
+            int dely = stars[i].y-sourceminy;
+            starMap[i]=freeStar;
+            destStars[freeStar].x=delx+minx;
+            destStars[freeStar].y=dely+miny;
             if (flipX&&sourceminx!=minx) {//only flip if we're on the opposite side
-                int delx = stars[i].x-sourceminx;
                 destStars[freeStar].x=maxx-delx;
             }
             if (flipY&&sourceminy!=miny) {//only flip if we're on the opposite side
@@ -510,33 +517,29 @@ void copyQuadrant(
                 destStars[freeStar].y=maxy-dely;
             }
             //fixup planets
+            int numPlanetsNeeded = 0;
             for (int j=0;j<5;++j) {
                 if (stars[i].planets[j]!=-1) {//otherwise we have it covered because the gets operator should do it fine
-                    if (freePlanet==-1) {
-                        printf ("Failure to find available planet index for %s : quadrant too dense\n",stars[i].name);
-                        destStars[freeStar].planets[j]=-1;
-                    }else {
-                        int planetIdx = stars[i].planets[j];
-                        destPlanets[freePlanet] = planets[planetIdx];
-                        destPlanets[freePlanet].data[PARENT_STAR] = freeStar;
-                        destStars[freeStar].planets[j]=freePlanet;
-                        freePlanet = nextFree(destPlanets,freePlanet,NUM_PLANETS);
-                        if (freePlanet==-1) {
-                            printf ("Failure to find available planet index: quadrant too dense\n");
-                        }
+                    ++numPlanetsNeeded;
+                }
+            }
+            for (int j=0;j<5;++j) {
+                if (destStars[i].planets[j]!=-1) {//otherwise we have it covered because the gets operator should do it fine
+                    --numPlanetsNeeded;
+                    if (numPlanetsNeeded<0) {
+                        freePlanets.push_back(destStars[i].planets[j]);
+                        /////FIXME///// this should happen, but we don't want to corrupt the save just yet destStars[i].planets[j]=-1;
                     }
                 }
             }
-            freeStar = nextFree(destStars,freeStar,NUM_STARS);
+            freeStar++;
+            freeStar = nextFreeStar(destStars,destPlanets,freeStar);//in case we'r4e at a homeworld
             if (freeStar==-1) {
                 printf ("Failure to find available star index: quadrant too dense\n");
                 return;
             }
         }
-
     }
-
-    
 }
 bool fixupHomeworlds(Star stars[], Planet planets[], double minx,double miny,double maxx,double maxy,
                     double homeX, double homeY, int whichHomeworld) {
@@ -710,8 +713,8 @@ int main (int argc, char**argv) {
             starNames.push_back(possibleNames[i]);
         }
     }
-    wipePlanets(newStars,newPlanets);
-    wipeStars(newStars,newPlanets);
+    //wipePlanets(newStars,newPlanets);
+    //wipeStars(newStars,newPlanets); no longer: we now work with what we have
     double percent_safe_zone=.03125;
     double wid = maxx-minx;
     double hei = maxy-miny;
@@ -752,8 +755,11 @@ int main (int argc, char**argv) {
     }
     {
         std::set<int>homeworldlessQuadrant;
+        std::vector<int> freePlanets;
+        std::map<int,int> starMap;//maps from source star to destination star
+        int freeStar=0;
         double homeX, homeY;
-        for (int doPlace=0;doPlace<2;++doPlace) {
+        for (int doPlace=0;doPlace<3;++doPlace) {
             int count=0;
             for (int x=0;x<numX;++x) {
                 for (int y=0;y<numY;++y) {
@@ -801,16 +807,24 @@ int main (int argc, char**argv) {
                                 printf("Homeworld located at %s %f %f (%d %d)\n",homeSystem.name,homeX,homeY,homeSystem.x,homeSystem.y);
                             }
                         }
-                        wipeQuadrant(newStars,newPlanets,localminx,localminy,localmaxx,localmaxy);
-                    }else {
-                        copyQuadrant(newStars,newPlanets, localminx,localminy,localmaxx,localmaxy,
-                                     stars,planets,sourceminx,sourceminy,sourcemaxx,sourcemaxy,flipX,flipY);
+                        //wipeQuadrant(newStars,newPlanets,localminx,localminy,localmaxx,localmaxy);
+                    }else if (doPlace==1){
+                        copyQuadrantStars(newStars,newPlanets, localminx,localminy,localmaxx,localmaxy,
+                                          stars,planets,sourceminx,sourceminy,sourcemaxx,sourcemaxy,flipX,flipY,starMap,freePlanets, freeStar);//saves up some free planets for us
                         int newHomeX = (flipX&&x)?localmaxx-homeX:homeX+localminx;
                         int newHomeY = (flipY&&y)?localmaxy-homeY:homeY+localminy;
                         printf("Placing homeworld at %d %d (From %f %f)\n",newHomeX, newHomeY, homeX, homeY);
                         if (!fixupHomeworlds(newStars,newPlanets, localminx,localminy,localmaxx,localmaxy,
                                              newHomeX,newHomeY,count)) {
                             printf("Could not find %d th homeworld\n",count);
+                        }
+                    }else if (doPlace==2) {
+                        for (int i=0;i<NUM_STARS;++i) {
+                            Star star=stars[i];
+                            if (starMap.find(i)!=starMap.end()&&!star.isEmpty()) {
+                                Star&dst = newStars[starMap[i]];
+                                
+                            }
                         }
                     }
                     ++count;
