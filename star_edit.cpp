@@ -583,12 +583,20 @@ bool fixupHomeworlds(Star stars[], Planet planets[], double minx,double miny,dou
             if (count++==whichHomeworld) {
                 stars[i].x=homeX;
                 stars[i].y=homeY;                
+                bool foundHuge=false;
                 for (int j=0;j<5;++j) {
                     int planetIdx = stars[i].planets[j];
                     if (planetIdx!=-1&&planetIdx<NUM_PLANETS) {
-                        if (planets[planetIdx].data[PLANETSIZECLASS]==4) {//we know players cannot select huge planets in the race pix
+                        if (planets[planetIdx].data[PLANETSIZECLASS]==4&&foundHuge==false) {//we know players cannot select huge planets in the race pix
+                            foundHuge=true;
                             planets[planetIdx].data[MINERALS]=2;//set huge planets to abundant for sure since they aren't home planets
+                            planets[planetIdx].data[ENVIRONMENT]=2;//set huge planets to barren
                             
+                            
+                        }else if (planets[planetIdx].data[TYPE]==3&&
+                                  (planets[planetIdx].data[ENVIRONMENT]!=5&&
+                                   planets[planetIdx].data[ENVIRONMENT]!=8)) {
+                            planets[planetIdx].data[TYPE]=2;
                         }
                     }
                 }
@@ -1047,6 +1055,7 @@ int main (int argc, char**argv) {
             fwrite(starData,1,STAR_SIZE,output);
         }
         fclose(output);
+        return 0;
         char *args[2];
         args[0]=argv[0];
         args[1]=argv[4];
