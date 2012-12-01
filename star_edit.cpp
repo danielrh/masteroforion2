@@ -17,11 +17,14 @@
 #include <string>
 #include <vector>
 #include <map>
-
+#include <math.h>
 const char * possibleNames[]={"Rhodos","Delphi","Horta","Cassandra","Sethlans","Ismareos","Diomedes","Thrace","Pontus","Thesseus","Nortia","Stymphalus","Thebes","Hecaton","Arachne","Pactolus","Eretria","Hera","Leon","Euphrosyne","Augeas","Zephir","Eurus","Mummu","Ajax","Scyros","Icarus","Hehet","Dionysus","Ammon","Lerna","Neith","Postverta","Nekhbet","Thelxepia","Coeus","Astarte","Alcmene","Sphinx","Nepthys","Kingu","Iphicles","Sparta","Iapetus","Clytaemnestra","Kalkal","Alcestis","Iris","Tartarus","Bel","LotosAni","Calypso","Aglaia","Vladimir","Geb","Argos","Samos","Aegeus","Aplu","Apollo","Ninhursaga","Sobek","Antu","Imhotep","Khepry","Khnum","Vertumus","Paros","Perseus","Aeolus","Nabu","Clio","Marduk","Apsu","Inanna","Laius","Turan","Mammetum","Epimetheus","ZaltuAmaunet","Aton","Aia","Telamon","Ea","Bes","Polyhymnia","Charun","Shara","Union","Metope","Nin ildu","Hesione","Delos","Peisinoe","Thracia","Hades","Callen","Tenedos","Tyndareus","Peleus","Hecuba","Nemesis","Belet ili","Nammu","Nintu","Hestia","Laocoon","Atropos","Nemea","Clotho","Chalcis","Gibil","Aglaophonos","Sekhmet","Keket","Crete","Mut","Thalia","Tethys","Enki","Patroclus","Hecate","Enurta","Osiris","Tinia","Erebus","Amun","Enlil","Nin agal ","Ptah","Papsukkal ","Karl","Ishtar","Cetus","Sin","Minotaur","Seth","Cepheus","Maat","Molpe","Pandora","Isis","Olympia","Athena","Jocasta","Neoptolemos","Ninurta","Nanna","Lachesis","Hydra","Hathor","Hanish","Aruru","Selvans","Laomedon","Naxos","Anu","Soviet","Eris","Artemis","Megara","Thasos","Penthesilea","Calchas","Morpheus","Ennead","Iphigenia","Utu","ThothAether","Aphrodite","Choephori","Moscow","Euripides","Maia","Laran","Deidameia","Engels","Mount Ida","Hephaestus","Lykia","Heracleidae","Februus","Anuket","Apis","Oceanus","Nusku","Archimedes","Cautha","Nereid","Cronus","Leto","Serapis","Tiamat","Culsu","Plataea","Charontes","Andromeda","Erymanthia","Nethuns","Rhesus","Persephone","Phobe","Nike","Hippolyta","Theseus","Qingu","Nut","Hebe","Deadulus","Ellil","Atum","Calliope","Andromache","Agamemnon","Athens","Mami","Lycus","Berkeley","Hellespont","Siduri","Nemaea","Hypnos","Silenus","Ra","Kek","Asclepius","Enceladus","Trotsky","Khonsu","Midas","Meresger","Gerra","Lenin","Urania","Bastet","Feronia","Heh","Euterpe","Theba","Anshar","Nash","Erato","Melpomene","Argolida","Phrygia","Chios","Poseidon","Hyperion","Ninsun","Eros","Eos","Hercules","Terpischore","Apep","Myrmidon","Ishum","Thesan","Pyrrhus","Helene","Alexandros","Hesiod","Erinyes","Rhea","Ares","Mullitu","Lahmu","Anubis","Atlas","Menelaus","Thetis","Horus","Voltumna","Janus","Chryseis","Ashur","Cerynea","Cyclope","Friedrich","Pasiphae","Hespera ","Athos","Nimnah","Boreas","Red","Shamash","Aeschylus","Summanus","Hygeia","Anat","Ninlil","Naunet","Kakka","Oedipus","Fama","Notus","Kishar","Olympus","Leningrad","Dumkina","Zeus","Shu","Klytamnestra","Mors","Hermes","Gaea","Philoctetes","Antaios","Priam","Shullat","Sophocles","Min","Gushkin banda","Marx","Lahamu","Adad","Demeter"};
 std::vector<std::string> starNames;
 std::set<std::string> validNames;
 std::set<std::string> homeworlds;
+std::set<int> orphanStars;
+#define MAX_NUM_PLANETS 192
+int NUM_PLANETS=MAX_NUM_PLANETS;
 typedef unsigned char byt;
 
 std::map<std::string,int> hist[0x1f];
@@ -337,7 +340,7 @@ public:
         printf("%s (%d, %d) owner:%d\n",name,x,y,owner);
         printf("[[[\n");
         for (int i=0;i<5;++i) {
-            if (planets[i]!=-1) {
+            if (planets[i]!=-1&&planets[i]<NUM_PLANETS) {
                 printf("planet[%d]: %d\n",i,planets[i]);
                 if (planetTable) {
                     planetTable[planets[i]].printPlanet(starTable);
@@ -366,7 +369,7 @@ void Planet::printPlanet(Star* starTable) {
 #define MAX_NUM_STARS 71
 int NUM_STARS=MAX_NUM_STARS;
 int NUM_PLAYERS=8;
-#define NUM_PLANETS 170
+
 bool isHomeworld(const Star&star, Planet planets[]) {
     if (star.x==0&&star.y==0)
         return false;
@@ -463,18 +466,19 @@ int nextFreeStar(Star destStars[], Planet destPlanets[], int curFree) {
     else return -1;
 }
 Star& crossMapStarCopy(Star&dst, const Star&src) {
-    dst = src;
-    memset(dst.unknownF,0,0x1d);
-    for (int i=0;i<0x1d-6;++i) {
-        if (i!=0x12)
-            dst.unknownF[i]=0xff;
+    size_t starNameIndex = rand()%starNames.size();
+    std::string curName = starNames[starNameIndex];
+    starNames[starNameIndex]=starNames.back();
+    starNames.pop_back();
+    if (starNames.empty()) {
+        printf("Falling back to builtin names\n");
+        for (int i=0;i<sizeof(possibleNames)/sizeof(char*);++i) {
+            starNames.push_back(possibleNames[i]);//fall back to builtin names
+        }
     }
-    memset(dst.unknownB,0,0x11);
-    dst.unknownB[0xf]=4;//or should it be 6
-    
-    memset(dst.unknownC,0,0xf);
-    dst.unknownC[0xd]=0xff;
-    
+    strncpy(dst.name,curName.c_str(),0xf);
+    dst.name[0xe]='\0';//zero terminate
+    dst.special=src.special;
     return dst;
 }
 void copyQuadrantStars(
@@ -489,19 +493,6 @@ void copyQuadrantStars(
             stars[i].y<=sourcemaxy&&
             !isHomeworld(stars[i],planets)) {
 
-            size_t starNameIndex = rand()%starNames.size();
-            std::string curName = starNames[starNameIndex];
-            starNames[starNameIndex]=starNames.back();
-            starNames.pop_back();
-            if (starNames.empty()) {
-                printf("Falling back to builtin names\n");
-                for (int i=0;i<sizeof(possibleNames)/sizeof(char*);++i) {
-                    starNames.push_back(possibleNames[i]);//fall back to builtin names
-                }
-            }
-            strncpy(destStars[freeStar].name,curName.c_str(),0xf);
-            destStars[freeStar].name[0xe]='\0';//zero terminate
-
             //fixup x and y coordinates
             int delx = stars[i].x-sourceminx;
 
@@ -515,13 +506,14 @@ void copyQuadrantStars(
                 printf ("Failure to find available star index after for count %d: quadrant too dense\n",sectorCount);
                 return;
             }
-
+            bool orphan=false;
             if (((sectorCount+1)*NUM_PLAYERS)>NUM_STARS) {//we're the orphans in the middle
+                orphan=true;
                 delx = sourcemaxx-sourceminx;
                 dely = sourcemaxy-sourceminy;
-                int varX = (sourcemaxx-sourceminx)/10;
-                int varY = (sourcemaxy-sourceminy)/10;
-                int randomX = rand()%varX-varX/2;//10% variability
+                int varX = (sourcemaxx-sourceminx)/16;
+                int varY = (sourcemaxy-sourceminy)/16;
+                int randomX = rand()%varX-varX/2;//7% variability
                 int randomY = rand()%varY-varY/2;
                 delx += randomX;
                 dely += randomY;
@@ -529,6 +521,10 @@ void copyQuadrantStars(
             }
             ++sectorCount;
             starMap[freeStar]=i;
+            crossMapStarCopy(destStars[freeStar],stars[i]);
+            if (orphan) {
+                printf("Orphan %s\n",destStars[freeStar].name);
+            }
             destStars[freeStar].x=delx+minx;
             destStars[freeStar].y=dely+miny;
             if (flipX&&sourceminx!=minx) {//only flip if we're on the opposite side
@@ -541,19 +537,31 @@ void copyQuadrantStars(
             //fixup planets
             int numPlanetsNeeded = 0;
             for (int j=0;j<5;++j) {
-                if (stars[i].planets[j]!=-1) {//otherwise we have it covered because the gets operator should do it fine
+                if (stars[i].planets[j]!=-1&&stars[i].planets[j]<NUM_PLANETS) {//otherwise we have it covered because the gets operator should do it fine
+/*
+                    if (orphan) {
+                        Planet& orphanPlanet =planets[stars[i].planets[j]];
+                        if (orphanPlanet.data[TYPE]==3&&rand()%2) {//if it's a planet, not a roid field
+                            orphanPlanet.data[MINERALS]=4;//set source to be ultra rich, baby!
+                            orphan=false;
+                        }
+                    }
+*/
                     ++numPlanetsNeeded;
                 }
             }
+            if (orphan)
+                orphanStars.insert(freeStar);
+            
             for (int j=0;j<5;++j) {
-                if (destStars[i].planets[j]!=-1) {//otherwise we have it covered because the gets operator should do it fine
+                if (destStars[freeStar].planets[j]!=-1&&stars[i].planets[j]<NUM_PLANETS) {//otherwise we have it covered because the gets operator should do it fine
                     --numPlanetsNeeded;
                     if (numPlanetsNeeded<0) {
-                        if (destPlanets[destStars[i].planets[j]].data[PARENT_STAR]==i) {
-                            freePlanets.push_back(destStars[i].planets[j]);
-                            destStars[i].planets[j]=-1;
+                        if (destPlanets[destStars[freeStar].planets[j]].data[PARENT_STAR]==freeStar) {
+                            freePlanets.push_back(destStars[freeStar].planets[j]);
+                            destStars[freeStar].planets[j]=-1;
                         }else {
-                            if (destStars[i].planets[j]!=0) {
+                            if (destStars[freeStar].planets[j]!=0) {
                                 printf("Strange planet that doesn't reference parent in source save\n");
                             }
                         }
@@ -577,7 +585,7 @@ bool fixupHomeworlds(Star stars[], Planet planets[], double minx,double miny,dou
                 stars[i].y=homeY;                
                 for (int j=0;j<5;++j) {
                     int planetIdx = stars[i].planets[j];
-                    if (planetIdx!=-1) {
+                    if (planetIdx!=-1&&planetIdx<NUM_PLANETS) {
                         if (planets[planetIdx].data[PLANETSIZECLASS]==4) {//we know players cannot select huge planets in the race pix
                             planets[planetIdx].data[MINERALS]=2;//set huge planets to abundant for sure since they aren't home planets
                             
@@ -590,14 +598,34 @@ bool fixupHomeworlds(Star stars[], Planet planets[], double minx,double miny,dou
     }
     return false;
 }
+void nerf(Star stars[], Planet planets[]) {
+    for (int i=0;i<NUM_STARS;++i) {
+        Star&star=stars[i];
+        if (!isHomeworld(star,planets)) {
+            if (star.special==0xb||star.special==0xa||star.special==0x8||star.special==0x7||star.special==0x6) {
+                star.special=(rand()%2+2);//turn natives,splinter,hero,artifacts into space debris, pirate cache
+            }
+            for (int j=0;j<5;++j) {
+                int whichPlanet = star.planets[j];
+                if (whichPlanet!=-1&&whichPlanet<NUM_PLANETS) {
+                    Planet&planet = planets[whichPlanet];
+                    if (planet.data[SPECIAL]>=6) {
+                        planet.data[SPECIAL]=(rand()%2+6);//gold or gem deposits
+                    }
+                }
+            }
+        }
+    }
+}
 void crossMapPlanetCopy(Planet&dst, const Planet&src) {
     dst=src;
 }
 int main (int argc, char**argv) {
-    Star stars[NUM_STARS];
-    Planet planets[NUM_PLANETS];
-    Star newStars[NUM_STARS];
-    Planet newPlanets[NUM_PLANETS];
+    srand(0x31337);
+    Star stars[MAX_NUM_STARS];
+    Planet planets[MAX_NUM_PLANETS];
+    Star newStars[MAX_NUM_STARS];
+    Planet newPlanets[MAX_NUM_PLANETS];
     homeworlds.insert("Sol");
     homeworlds.insert("Nazin");
     homeworlds.insert("Meklon");
@@ -664,6 +692,7 @@ int main (int argc, char**argv) {
     int minx = (1<<30);
     int maxy = -(1<<30);
     int miny = (1<<30);
+    nerf(stars,planets);
     for (int doInput=(argc>2?0:1);doInput<2;++doInput) {
         for (int i=0;i<NUM_STARS;++i) {
             const byt * curData = (doInput?data:writeData)+(STAR_OFFSET+i*STAR_SIZE);
@@ -718,6 +747,7 @@ int main (int argc, char**argv) {
     for (int i=0;i<NUM_STARS;++i) {
         if (newStars[i].isEmpty()) {
             NUM_STARS=i;
+            if (i==0) NUM_STARS=71;
             printf("Setting num stars to %d\n",NUM_STARS);
             break;
         }
@@ -750,7 +780,7 @@ int main (int argc, char**argv) {
     }
     //wipePlanets(newStars,newPlanets);
     //wipeStars(newStars,newPlanets); no longer: we now work with what we have
-    double percent_safe_zone=.03125;
+    double percent_safe_zone=0;//.03125;
     double wid = maxx-minx;
     double hei = maxy-miny;
     char mode = argv[3][0];
@@ -792,6 +822,7 @@ int main (int argc, char**argv) {
         flipX=false;
         flipY=true;
     }
+    int orphanCount=0;
     {
         std::set<int>homeworldlessQuadrant;
         std::vector<int> freePlanets;
@@ -870,11 +901,11 @@ int main (int argc, char**argv) {
                 //strcpy(newStars[freeStar].name,"DANGER");
                 printf("Found a free star\n");
                 for (int p=0;p<5;++p) {
-                    if (newStars[freeStar].planets[p]!=-1) {
+                    if (newStars[freeStar].planets[p]!=-1&&newStars[freeStar].planets[p]<NUM_PLANETS) {
                         if (newPlanets[newStars[freeStar].planets[p]].data[PARENT_STAR]==freeStar) {
                             freePlanets.push_back(newStars[freeStar].planets[p]);
                         }else {
-                            if (newStars[freeStar].planets[p]!=0) {
+                            if (newStars[freeStar].planets[p]!=0&&newStars[freeStar].planets[p]<NUM_PLANETS) {
                                 printf("Odd syste in save file that's cross referenced\n");
                             }
                         }
@@ -884,7 +915,7 @@ int main (int argc, char**argv) {
                 //}
                 ++freeStar;
             } 
-            
+            printf("Orphan star size %d\n",(int)orphanStars.size());
             for (int index=0;index<NUM_STARS;++index) {
                 Star &dst=newStars[index];
                 if (starMap.find(index)!=starMap.end()) {
@@ -892,17 +923,49 @@ int main (int argc, char**argv) {
                     
                     Star star = stars[starMap[index]];
                     for (int p=0;p<5;++p) {
-                        if (dst.planets[p]!=-1) {
+                        if (dst.planets[p]!=-1&&dst.planets[p]<NUM_PLANETS) {
                             if (newPlanets[dst.planets[p]].data[PARENT_STAR]==destStarIndex) {
                                 freePlanets.push_back(dst.planets[p]);//this will guarantee we pop these guys first to minimize change we can believe in
-                            }else if (dst.planets[p]!=0) {
+                            }else if (dst.planets[p]!=0&&dst.planets[p]<NUM_PLANETS) {
                                 printf("Odder syste in save file that's cross referenced\n");
                             }
                             dst.planets[p]=-1;
                         }
                     }
+                    bool didUltraRich=false;
+                    bool isThisOrphan = orphanStars.find(destStarIndex)!=orphanStars.end();
+                    if(isThisOrphan) {
+                        dst.x=(minx+maxx)/2;
+                        dst.y=(miny+maxy)/2;//put this in the middle of the map
+                        if (orphanCount>0) {
+                            double angle=0;
+                            switch (orphanCount) {
+                              case 1:
+                                angle=0;
+                                break;
+                              case 2:
+                                angle=M_PI;
+                                break;
+                              case 3:
+                                angle=M_PI/2;
+                                break;
+                              case 4:
+                                angle=3*M_PI/2;
+                                break;
+                              default:
+                                angle = 3.1415926536*2*(.5+((orphanCount-5)/4.0));
+                                break;
+                            }
+                            int del=(minx+maxx)/10;
+                            int delx = (int)(del*cos(angle));
+                            int dely = (int)(del*sin(angle));
+                            dst.x+=delx;
+                            dst.y+=dely;
+                        }
+                        ++orphanCount;
+                    }
                     for (int p=0;p<5;++p) {
-                            if (star.planets[p]!=-1) {
+                            if (star.planets[p]!=-1&&star.planets[p]<NUM_PLANETS) {
                                 if (freePlanets.size()) {
                                     int newPlanetIndex = freePlanets.back();
                                     freePlanets.pop_back();
@@ -916,6 +979,19 @@ int main (int argc, char**argv) {
                                         }
                                     }
                                     crossMapPlanetCopy(newPlanets[newPlanetIndex],planets[star.planets[p]]);
+                                    
+                                    if (isThisOrphan) {
+                                        if (didUltraRich==false&&newPlanets[newPlanetIndex].data[TYPE]==0x3) {
+                                            didUltraRich=true;
+                                            newPlanets[newPlanetIndex].data[MINERALS]=0x4;//set to ultra rich!!!!
+                                            newPlanets[newPlanetIndex].data[PLANETSIZECLASS]=rand()%0x5;
+                                            newPlanets[newPlanetIndex].data[ENVIRONMENT]=rand()%0xa;
+                                        }else {
+                                            newPlanets[newPlanetIndex].data[MINERALS]=rand()%0x4;//not ultra rich
+                                            newPlanets[newPlanetIndex].data[PLANETSIZECLASS]=rand()%0x5;
+                                            newPlanets[newPlanetIndex].data[ENVIRONMENT]=rand()%0xa;
+                                        }
+                                    }
                                     dst.planets[p]=newPlanetIndex;
                                     newPlanets[newPlanetIndex].data[PARENT_STAR]=destStarIndex;
                                 }else {
@@ -935,7 +1011,7 @@ int main (int argc, char**argv) {
                 bool error=false;
                 for (int j=0;j<5;++j) {
                     int ind = newStars[index].planets[j];
-                    if (ind!=-1) {
+                    if (ind!=-1&&ind<NUM_PLANETS) {
                         if (newPlanets[ind].data[PARENT_STAR]!=index) {
                             newStars[index].planets[j]=-1;
                             error=true;
