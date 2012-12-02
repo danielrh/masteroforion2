@@ -538,15 +538,6 @@ void copyQuadrantStars(
             int numPlanetsNeeded = 0;
             for (int j=0;j<5;++j) {
                 if (stars[i].planets[j]!=-1&&stars[i].planets[j]<NUM_PLANETS) {//otherwise we have it covered because the gets operator should do it fine
-/*
-                    if (orphan) {
-                        Planet& orphanPlanet =planets[stars[i].planets[j]];
-                        if (orphanPlanet.data[TYPE]==3&&rand()%2) {//if it's a planet, not a roid field
-                            orphanPlanet.data[MINERALS]=4;//set source to be ultra rich, baby!
-                            orphan=false;
-                        }
-                    }
-*/
                     ++numPlanetsNeeded;
                 }
             }
@@ -830,7 +821,7 @@ int main (int argc, char**argv) {
         flipX=false;
         flipY=true;
     }
-    int orphanCount=0;
+
     {
         std::set<int>homeworldlessQuadrant;
         std::vector<int> freePlanets;
@@ -924,6 +915,7 @@ int main (int argc, char**argv) {
                 ++freeStar;
             } 
             printf("Orphan star size %d\n",(int)orphanStars.size());
+            int orphanCount=orphanStars.size()==2?1:0;
             for (int index=0;index<NUM_STARS;++index) {
                 Star &dst=newStars[index];
                 if (starMap.find(index)!=starMap.end()) {
@@ -991,11 +983,23 @@ int main (int argc, char**argv) {
                                     if (isThisOrphan) {
                                         if (didUltraRich==false&&newPlanets[newPlanetIndex].data[TYPE]==0x3) {
                                             didUltraRich=true;
-                                            newPlanets[newPlanetIndex].data[MINERALS]=0x4;//set to ultra rich!!!!
+                                            if (NUM_STARS>50) {
+                                                newPlanets[newPlanetIndex].data[MINERALS]=0x4;//set to ultra rich!!!!
+                                                newPlanets[newPlanetIndex].data[G]=0x2;//set to heavy G!!!!
+                                            }else {
+                                                newPlanets[newPlanetIndex].data[MINERALS]=0x3;//set to rich!!!!
+                                                newPlanets[newPlanetIndex].data[G]=0x1;//set to normal G!!!!
+                                            }
                                             newPlanets[newPlanetIndex].data[PLANETSIZECLASS]=rand()%0x5;
                                             newPlanets[newPlanetIndex].data[ENVIRONMENT]=rand()%0xa;
                                         }else {
-                                            newPlanets[newPlanetIndex].data[MINERALS]=rand()%0x4;//not ultra rich
+                                            newPlanets[newPlanetIndex].data[G]=0x1;//set to normal G!!!!
+                                            
+                                            if (NUM_STARS>50) {
+                                                newPlanets[newPlanetIndex].data[MINERALS]=rand()%0x3+1;//not ultra rich
+                                            }else {
+                                                newPlanets[newPlanetIndex].data[MINERALS]=rand()%0x2+1;//not ultra poor
+                                            }
                                             newPlanets[newPlanetIndex].data[PLANETSIZECLASS]=rand()%0x5;
                                             newPlanets[newPlanetIndex].data[ENVIRONMENT]=rand()%0xa;
                                         }
