@@ -1,10 +1,21 @@
 Master of Orion 2 Galaxy Balancer
 
-In Master of Orion 2, the galaxy generation is random. In recent experiments we have found that even the 3rd system colonized can have up to a 20% effect on the final score. This kind of imbalance can cause extremely unfair games that can last up to 20 hours.
+In Master of Orion 2, the galaxy generation is random. In recent experiments we have found that even the 3rd system colonized can have up to a 20% effect on the final score. This kind of imbalance can cause extremely unfair games. Since each game can last up to 20 hours, it's difficult to apply the law of large numbers to attain game balance.
 
 The solution is to balance the galaxy so that everyone has an equal opportunity to grow their empire with the same planets.
 
 The basic design is to pick a half, quadrant (or 1/6th) of the galaxy depending on the number of players and reflect it across the mirror lines.  Then everyone will experience the same first few planets and can adjust appropriately.
+
+
+First you must generate your SAVEGAME with the moo 1.40 patch http://lordbrazen.blogspot.com/2005/01/download.html
+
+and run the game with
+
+orion.exe /picks=14 /nohousing /nowh /nobh /noorion /minstart /planets=2 /numplanets=2 /hugestart /monsters=0
+
+for each player joining.
+
+The savegame galaxy reflector does not react well to Orion, monsters, wormholes, or more than 2 planets in a home system--so the above command line should avoid those problematic constructions.
 
 
 Usage Example:
