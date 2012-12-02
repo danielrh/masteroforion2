@@ -620,6 +620,40 @@ void crossMapPlanetCopy(Planet&dst, const Planet&src) {
     dst=src;
 }
 int main (int argc, char**argv) {
+    bool doHelp=false;
+    if (argc<=1) {
+        doHelp=true;
+    }
+    for (int i=1;i<argc;++i) {
+        if (strcmp(argv[i],"-h")==0||
+            strcmp(argv[i],"-help")==0||
+            strcmp(argv[i],"--help")==0||
+            strcmp(argv[i],"/help")==0||
+            strcmp(argv[i],"/h")==0) {
+            doHelp=true;
+        }
+    }
+    if (doHelp) {
+        printf("Usage Example:\n\n%s SAVE1.GAM SAVE2.GAM q0 SAVE3.GAM\nThe above example takes the planets from SAVE1.GAM applies it to the monsters and 4 player races and planet picks of SAVE2.GAM takes the 0th quadrant (numbered from 0 to 3) and saves the result into SAVE3.GAM\n\n",argv[0]);
+        printf("Generic usage %s <planetInput> <raceInput> <quadrantSelection> <output>\n\n",argv[0]);
+        printf("The general usage is that <planetInput> should be set to a Master of Orion II save game file, often the same file, that contains the planets and <raceInput> should be set to the save game that has the desired races. Then the quadrantSelection selects a portion of the map and rotates and mirrors it so that every player gets an even shake. <output> should be set to the final save file that may be reloaded for the fair game\n\n");
+        printf("quadrant selection is limited to the following options:\n");
+        printf("2 player options:\n");
+        printf("h0 assume a 2 player game and take the left half and reflect it\n");
+        printf("h1 assume a 2 player game and take the right half and reflect it\n");
+        printf("v0 assume a 2 player game and take the top half and reflect it\n");
+        printf("v1 assume a 2 player game and take the bottom half and reflect it\n");
+        printf("4 player options:\n");
+        printf("q0 assume a 4 player game and take the top left quarter and mirror it\n");
+        printf("q1 assume a 4 player game and take the bottom left quarter and mirror it\n");
+        printf("q2 assume a 4 player game and take the bottom right quarter and mirror it\n");
+        printf("q3 assume a 4 player game and take the top right quarter and mirror it\n");
+        printf("x0 assume a 6 player game and take the first slice and mirror it\n");
+        printf("6 player options:\n");
+        printf("x0 or x1 or x2 or x3 or x4 or x5 mirror the appropriate slice\n");
+
+        return 0;
+    }
     srand(0x31337);
     Star stars[MAX_NUM_STARS];
     Planet planets[MAX_NUM_PLANETS];
