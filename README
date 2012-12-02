@@ -1,0 +1,35 @@
+Master of Orion 2 Galaxy Balancer
+
+In Master of Orion 2, the galaxy generation is random. In recent experiments we have found that even the 3rd system colonized can have up to a 20% effect on the final score. This kind of imbalance can cause extremely unfair games that can last up to 20 hours.
+
+The solution is to balance the galaxy so that everyone has an equal opportunity to grow their empire with the same planets.
+
+The basic design is to pick a half, quadrant (or 1/6th) of the galaxy depending on the number of players and reflect it across the mirror lines.  Then everyone will experience the same first few planets and can adjust appropriately.
+
+
+Usage Example:
+
+star_edit SAVE1.GAM SAVE2.GAM q0 SAVE3.GAM
+
+The above example takes the planets from SAVE1.GAM applies it to the monsters and 4 player races and planet picks of SAVE2.GAM takes the 0th quadrant (numbered from 0 to 3) and saves the result into SAVE3.GAM
+
+        Generic usage star_edit <planetInput> <raceInput> <quadrantSelection> <output>
+
+        The general usage is that <planetInput> should be set to a Master of Orion II save game file, often the same file, that contains the planets and <raceInput> should be set to the save game that has the desired races. Then the quadrantSelection selects a portion of the map and rotates and mirrors it so that every player gets an even shake. <output> should be set to the final save file that may be reloaded for the fair game
+
+        quadrant selection is limited to the following options:
+
+        2 player options:
+        h0 assume a 2 player game and take the left half and reflect it
+        h1 assume a 2 player game and take the right half and reflect it
+        v0 assume a 2 player game and take the top half and reflect it
+        v1 assume a 2 player game and take the bottom half and reflect it
+
+        4 player options:
+        q0 assume a 4 player game and take the top left quarter and mirror it
+        q1 assume a 4 player game and take the bottom left quarter and mirror it
+        q2 assume a 4 player game and take the bottom right quarter and mirror it
+        q3 assume a 4 player game and take the top right quarter and mirror it
+
+        6 player options:
+        x0 or x1 or x2 or x3 or x4 or x5 mirror the appropriate slice

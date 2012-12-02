@@ -648,7 +648,6 @@ int main (int argc, char**argv) {
         printf("q1 assume a 4 player game and take the bottom left quarter and mirror it\n");
         printf("q2 assume a 4 player game and take the bottom right quarter and mirror it\n");
         printf("q3 assume a 4 player game and take the top right quarter and mirror it\n");
-        printf("x0 assume a 6 player game and take the first slice and mirror it\n");
         printf("6 player options:\n");
         printf("x0 or x1 or x2 or x3 or x4 or x5 mirror the appropriate slice\n");
 
