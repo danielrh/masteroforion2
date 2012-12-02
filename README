@@ -18,6 +18,16 @@ for each player joining.
 The savegame galaxy reflector does not react well to Orion, monsters, wormholes, or more than 2 planets in a home system--so the above command line should avoid those problematic constructions.
 
 
+Build Directions
+
+Make a console application in your favorite C++ ide and add star_edit.cpp into it and your favorite C++ compiler at it. Then build a star_edit executable.
+It has no dependencies, so no libraries are required for a C++ compliant compiler.
+
+
+Example Build:
+g++ -o star_edit star_edit.cpp -g3
+
+
 Usage Example:
 
 star_edit SAVE1.GAM SAVE2.GAM q0 SAVE3.GAM
